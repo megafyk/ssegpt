@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+jobs:
+  test:
+    runs-on: [self-hosted, Linux]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependency
+        run: go mod download
+      - name: Unit test
+        run: make test
+        continue-on-error: false
+  build:
+    runs-on: [self-hosted, Linux]
+    needs: [test]
+    steps:
+      - name: Login docker registry
+        run: podman login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD} docker.io/megafyk/ssegpt
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Change script permission
+        run: chmod +x build_image.sh
+      - name: Build
+        run: ./build_image.sh
